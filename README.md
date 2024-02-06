@@ -60,140 +60,141 @@ Les différents types de malfaçons sont :
 
 #### Initialisation : statut CREATING
 Une signalisation est créée par l’OI et porte l’information ResolutionOwner = ‘OC’.
-A ce stade la signalisation n'est pas complète puisqu'aucune pièce jointe n'a été ajoutée au ticket.
+A ce stade la signalisation est en cours de création.
 
 L'OI a renseigné les champs :
 - resolutionOwner = OC
-- chargeable : yes
+- attributable : yes
 - type
 - localisationDetails
 - faultDetails
-- volumetry
-- severity (ne peut pas être Critical puisque chargeable=Yes)
+- quantity
+- severity (ne peut pas être Critical puisque attributable=Yes)
 - les informations de localisation de la Malfaçon (ref PM et/ou ref PB et/ou ref PTO)
 - ocNumber = 1
 
 Le champs statusChangeReason = Creating
 
 #### Complétude : statut ACKNOWLEDGED
-La signalisation porte obligatoirement une pièce jointe illustrant la malfaçon.
-Pour les malfaçons de type AmontPm, Pm, PmPbo, Pbo, cette pièce jointe est obligatoirement une photo.
-Pour les types CcfCable et CcfPto, la pièce jointe peut être une photo ou un plan.
-Le compteur de délai max de reprise/résolution OC (totalResolutionOcDuration) démarre dès ce statut (ex 30 jours).
+La signalisation est alors complète et contient l'ensemble des informations pour l'analyse OC:
+- une photo au format JPEG est présente oligatoirement illustrant la malfaçon
+- sauf dans les cas ci-dessous où l'OI devra fournir la route optique constatée (obligatoire) et la route optique théorique (facultatif) :
+    PBO	/ ROUTE OPTIQUE /	Reprise sauvage Route Optique par casse soudure au PBO
+    PBO	/ ROUTE OPTIQUE	/ Raccordement de site non déployé dans IPE
+    PBO	/ ROUTE OPTIQUE	/ Non respect Route Optique communiquée
+    PM	 / ROUTE OPTIQUE	/ Non respect Route Optique communiquée
+  
+Le compteur de délai max de reprise démarre dès ce statut (ex 30 jours).
 Le champs statusChangeReason = Acknowledged
 
 Possibilités de changement de status:
 
 #### ACKNOWLEDGED → REJECTED: Le ticket n'est pas jugé recevable par l'OC
 
-Ce changement ne peut être effectué que par  l'OC et uniquement si le ticket est invalide
+Ce changement ne peut être effectué que par  l'OC et uniquement si le ticket est invalide syntaxiquement.
 
-Les raisons (statusChangeReason) possibles sont:
-
-UNKNOWN_RESOURCE: la ressource n'existe pas chez l'OC
-
-DUPLICATE: le ticket est en conflit avec un autre ticket (non respect du délai max de dépôt entre les tickets auprès d’un même OC sur un même élément d’infra ). Le champ statusChangeDetails est obligatoire avec la référence du ticket en conflit.
-
-ORDER_PUT_INTO_SERVICE_FOR_MORE_THAN_A_YEAR : la commande d'accès date d'il y a plus d'un an
-
-INVALID: le ticket est jugé invalide et non analysable par l'OC.
-Le champ statusChangeDetails est obligatoire.
+Le statusChangeReason est INVALID_FORMAT.
 
 #### ACKNOWLEDGED → IN_PROGRESS: Le ticket est en cours de résolution
 
-Ce changement est effectué par  l'OC et il n'est plus possible de passer le ticket à REJECTED une fois ce changement de statut effectué.
-
-Le champ statusChangeReason doit être renseigné avec Chargeable_Accepted.
+Ce changement est :
+- soit effectué par  l'OC. Le champ statusChangeReason doit être renseigné avec Attributable_Accepted
+- soit par l'OI lorsque le délai de résolution OC est atteinte (. Dans ce cas, le resolutionOwner est mis à OI et le champs statusChangeReason à OC_RESOLUTION_DELAY_EXPIRED.
 
 #### IN_PROGRESS → IN_PROGRESS: l'OI prend en charge la résolution du ticket suite dépassement délai OC
-Ce changement de status ne peut être effectué que par l'OI lorsque le délai de résolution par l'OC est dépassé (totalResolutionOcDuration > délai fixé).
+Ce changement de status ne peut être effectué que par l'OI lorsque le délai de résolution par l'OC est dépassé.
 
 L'OI doit alors :
 - modifier le champs resolutionOwner qui doit être renseigné à "OI"
-- Le champ statusChangeReason doit être renseigné avec RESOLUTION_DATE_EXPIRED
+- Le champ statusChangeReason doit être renseigné avec OC_RESOLUTION_DELAY_EXPIRED
 
-#### IN_PROGRESS → PENDING: demande OC d'information complémentaire à l'OI
-Ce changement de statut ne peut être effectué que par l'OC sur une malfaçon dont le ResolutionOwner='OC'.
-Cette transition a pour effet de geler le compteur totalResolutionOcDuration.
-L'OI a alors un délai maximum pour apporter sa réponse : maxPendingDate
+#### IN_PROGRESS → PENDING: demande OC d'information complémentaire à l'OI, ou inversement - Contestation OC
+Ce changement de statut peut être effectué 
+- par l'OC sur une malfaçon dont le ResolutionOwner='OC'
+- par l'OI sur une malfaçon dont le ResolutionOwner='OI'
 
+Lorsque cela est à l'initiative de l'OC :
+- Cette transition a pour effet de geler le compteur de résolution OC
+- L'OI a alors un délai maximum pour apporter sa réponse 
 Le champ statusChangeReason doit être renseigné avec  :
+- INFORMATION_REQUEST: demande d'information
+- ou un motif de contestation.L'OC ne pourra contester que 2 fois maximum une signalisation auprès de l'OI. Les motifs de contestation sont :
+- CONTESTATION_PHOTO_NOT_USABLE: Photo non exploitable/flou/mal cadré
+- CONTESTATION_EQUIPMENT_ERROR: confusion sur l'équipement déclaré
+- CONTESTATION_DUPLICATE: le ticket est en conflit avec un autre ticket (non respect du délai max de dépôt entre les tickets auprès d’un même OC sur un même élément d’infra ). Le champ statusChangeDetails est obligatoire avec la référence du ticket en conflit.
+- CONTESTATION_ORDER_PUT_INTO_SERVICE_FOR_MORE_THAN_A_YEAR : la commande d'accès date d'il y a plus d'un an. Ne s'applique qu'à des signalisations CCF.
+- CONTESTATION_OI_RESPONSABILITY: jugé comme sous responsabilité OI (ex: candidat à la REC, tambours....)
+- CONTESTATION_OC_ERROR: OC non concerné
+- CONTESTATION_NOT_ALLOWED : autre cas. Le détail doit être fourni obligatoirement dans le statusChangeDetails
+L'OC peut fournir le détail des informations complémentaires attendues dans le champs statusChangeDetails (obligatoire pour CONTESTATION_NOT_ALLOWED).
 
-PHOTO_NOT_USABLE : Photo non exploitable (flou mal cadré)
+Lorsque cela est à l'initiative de l'OI :
+- L'OC a alors un délai maximum pour apporter sa réponse 
+Le champ statusChangeReason doit être renseigné avec  :
+- INFORMATION_REQUEST: demande d'information
 
-PM_ERROR : Confusion entre identification du PM et PM déclaré
+#### PENDING → IN_PROGRESS: réponse OI à une demande d'information ou une contestation OC. Ou réponse OC à une demande OI
+Ce changement de status peut être effectué par l'OI ou par l'OC.
 
-CONTESTATION : cette transition n’est possible qu’une et une seule fois par l'OC, sinon rejet OI
+Dans le cas de l'OI, cela fait suite à une demande d'information OC ou une contestation:
+- Cette transition a pour effet de dégeler le compteur de résolution OC
+- Le champ statusChangeReason doit être renseigné avec  :
+  - INFORMATION_GIVEN : avec fourniture de la réponse dans le statusChangeDetails obligatoire
+  - CONTESTATION_REFUSED : rejet de la contestation (deux contestations maximum par l'OC)
 
-OTHER : Autre information attendue
+Dans le cas de l'OC, cela fait suite à une demande d'information OI:
+Le champ statusChangeReason doit être renseigné avec INFORMATION_GIVEN avec fourniture de la réponse dans le statusChangeDetails obligatoire.
 
-L'OC doit fournir le détail des informations complémentaires attendues dans le champs statusChangeDetails.
-
-#### PENDING → IN_PROGRESS: réponse OI à une demande d'information complémentaire OC
-Ce changement de status ne peut être effectué que par l'OI et dans un délai inférieur au maxPendingDate.
-Cette transition a pour effet de dégeler le compteur totalResolutionOcDuration.
-
-Le champ statusChangeReason doit être renseigné avec la valeur INFORMATION_GIVEN
-
-L'OI fournit la liste des informations complémentaires attendues:
-- soit dans le champ statusChangeDetails
-- et/ou une note
-- et/ou un attachment
-
-#### PENDING → RESOLVED: absence de réponse OI dans les délais
-Ce changement de status ne peut être effectué que par l'OI (automatiquement) lorsque le délai de réponse OI a été dépassé (maxPendingDate).
-En absence de réponse OI, le ticket passe automatiquement en Resolved avec le champ statusChangeReason renseigné à  DELAY_ANSWER_EXPIRED
+#### PENDING → CANCELED: absence de réponse OI dans les délais ou validation de la contestation
+Ce changement de status ne peut être effectué que par l'OI:
+- soit automatiquement lorsque le délai de réponse OI a été dépassé : le statusChangeReason est alors à OI_RESPONSE_DELAY_EXPIRED
+- soit en cas de validation de la contestation OC : CONTESTATION_ACCEPTED
 
 #### IN_PROGRESS → RESOLVED: résolution du ticket
 
 Sur un ticket dont le champs resolutionOwner='OI', ce changement de status ne peut être effectué que par l'OI. Le champ statusChangeReason doit être renseigné avec RESOLVED_OI.
 
-Sur un ticket dont le champs resolutionOwner='OC', ce changement de status ne peut être effectué que par l'OC. Le champ statusChangeReason doit être renseigné avec RESOLVED_OC. Le compteur de délai de résolution OC (totalResolutionOcDuration) se gèle et le délai max de validation OI (maxValidationDate) est alors calculé.
+Sur un ticket dont le champs resolutionOwner='OC', ce changement de status ne peut être effectué que par l'OC. Le champ statusChangeReason doit être renseigné avec RESOLVED_OC. Le compteur de délai de résolution OC se gèle et compteur de validation OI est alors calculé.
 
 Sur ces statusChangeReason = Resolved_OI ou Resolved_OI :
 - le champs resolutionDate doit être renseigné
-- ainsi que le champs recoveryVolumeDone
-- une photo illustrant la résolution de la malfaçon est obligatoire
+- ainsi que le champs recoveryQuantity
+- et une photo obligatoire au format JPEG illustrant la résolution de la malfaçon, sauf pour les 4 cas route optique (cf. status Acknowledged)
 
+#### ACKNOWLEDGED → CANCELLED : annulation du ticket par l'OI
+Ce changement de status ne peut être effectué que par l'OI.
+Le statusChangeReason est CANCELED.
 
-#### ACKNOWLEDGED|IN_PROGRESS|PENDING → CANCELLED : annulation du ticket par l'OI
-Ce changement de status ne peut être effectué que par l'OI, et quel que soit le porteur de la résolution (ResolutionOwner), qu'il soit OI ou OC.
-Cela peut faire suite à une mauvaise initialisation, ou à des échanges OC/OI en cours de vie du ticket.
-
-Le champs statusChangeReason doit être renseigné avec :
-
-REC_CANDIDATE : Malfaçon à requalifier en REC
-
-WRONG_TICKET :  ticket mal initialisé/contestation acceptée
-
-UNRESOLVED_TICKET :  ticket qui ne sera pas résolu
-Le champ statusChangeDetails doit être renseigné avec la raison de l'annulation.
-
-OTHER :  Autre raison
-Le champ statusChangeDetails doit être renseigné avec la raison de l'annulation.
+#### IN_PROGRESS → CANCELLED : annulation du ticket par l'OI
+Ce changement de status ne peut être effectué que par l'OI.
+Le statusChangeReason peut être :
+OI_DELAY_EXPIRED : lorsque l'OI n'a pas répondu dans les temps aux questions / contestations OC
+CANCELED: autre cas
 
 #### RESOLVED → CLOSED: cloture du ticket.
-
-Ce changement de status est effectué par l'OI :
-
-- par validation explicite de la résolution OC par l'OI sur un ticket dont le ResolutionOwner='OC'
-Le champ statusChangeReason doit alors être renseigné avec la valeur RESOLUTION_ACCEPTED.
-
-- ou de façon automatique si le délai de validation OI (totalResolutionOcDuration>délai) est dépassé sur un ticket dont le ResolutionOwner='OC'.
-Le champ statusChangeReason doit alors être renseigné avec la valeur DELAY_VALIDATION_EXPIRED
-
-- ou enfin pour cloturer une signalisation dont la résolution est portée par l'OI (ResolutionOwner='OI')
-Le champ statusChangeReason doit alors être renseigné avec la valeur RESOLUTION_ACCEPTED
+Ce changement de status est effectué par l'OI. Le statusChangeReason peut être :
+- RESOLVED_OC_VALIDATED
+- RESOLVED_OI_VALIDATED
+- OI_VALIDATION_DELAY_EXPIRED : passage automatique suite au dépassement du délai de validation OI sur une résolution OC
 
 #### RESOLVED → IN_PROGRESS: refus OI de la résolution OC du ticket
+Ce changement de status ne peut être effectué que par l'OI sur un ticket dont le ResolutionOwner='OC'.
 
-Ce changement de status ne peut être effectué que par l'OI sur un ticket dont le ResolutionOwner='OC' et que l'OC indique avoir résolu la malfaçon (état resolved + statusChangeReason à Resolved_OC).
+Cette transition a pour effet de dégeler le compteur de résolution OC.
 
-Cette transition a pour effet de dégeler le compteur totalResolutionOcDuration.
+Le champ statusChangeReason doit être renseigné avec :.
+- RESOLUTION_REFUSED_PARTIALLY_RESOLVED : résolution partielle
+- RESOLUTION_REFUSED_PHOTO_NOT_USABLE: Photo non exploitable/flou/mal cadré
+- RESOLUTION_REFUSED_EQUIPMENT_ERROR: confusion sur l'équipement déclaré
+- RESOLUTION_REFUSED_NOT_REPAIRED: non résolu
 
-Le champ statusChangeReason doit être renseigné avec la valeur RESOLUTION_REFUSED.
+#### PENDING → CLOSED: absence de réponse OC à une demande OI
+Ce changement de status ne peut être effectué que par l'OI sur un ticket dont le ResolutionOwner='OI'.
+L'OI a questionné l'OC pour pouvoir réparer la signalisation. En absence de réponse OC dans les temps, cette signalisation est cloturée avec le statusChangeReason à OI_RESOLUTION_IMPOSSIBLE.
 
-Le champ statusChangeDetails doit être renseigné avec la raison du refus.
+#### PENDING → CLOSED: absence de réponse OC à une demande OI
+Ce changement de status ne peut être effectué que par l'OI sur un ticket dont le ResolutionOwner='OI'.
+Cette signalisation ne peut pas être reprise par l'OI et donc le statusChangeReason=OI_RESOLUTION_IMPOSSIBLE.
 
 ## Liste des différents compteurs utilisés dans le process malfaçons lors d'une signalisation OI vers OC
 Le protocole Interop n’harmonise pas les délais car ils relèvent du domaine contractuel propre à chaque opérateur. Néanmoins, les opérateurs doivent mettre en place des délais pour les cas décrits ci-dessous. Les valeurs sont propres à chaque OC/OI et seront formalisées dans les contrats.
@@ -236,25 +237,24 @@ L'OI a renseigné les champs :
 - type
 - localisationDetails
 - faultDetails
-- volumetry
-- severity (doit être Critical si chargeable=Yes car résolution portée par l'OI)
+- quantity
+- severity (doit être Critical si attributable=Yes car résolution portée par l'OI)
 - les informations de localisation de la Malfaçon (ref PM et/ou ref PB et/ou ref PTO)
-- chargeable : yes or no
+- attributable : yes or no
 - nombre d'OC concerné
 
 Le champs statusChangeReason = Creating
 
 #### Complétude : statut ACKNOWLEDGED
-Une signalisation porte obligatoirement une pièce jointe illustrant la malfaçon.
-Pour les malfaçons de type AmontPm, Pm, PmPbo, Pbo, cette pièce jointe est obligatoirement une photo.
-Pour les types CcfCable et CcfPto, la pièce jointe peut être une photo ou un plan.
+Une signalisation porte obligatoirement une photo au format JPEG illustrant la malfaçon, sauf dans le cas des malfaçons de type
+
 Le champs statusChangeReason = Acknowledged
 
 Possibilités de changement de status:
 
 #### ACKNOWLEDGED → IN_PROGRESS: Le ticket est en cours de résolution
 
-Ce changement de statut est effectué par  l'OI et le champ statusChangeReason doit être renseigné avec statusChangeReason = "Non_Chargeable_In_Progress" si chargeable = No, Critical_In_Progress sinon
+Ce changement de statut est effectué par  l'OI et le champ statusChangeReason doit être renseigné avec statusChangeReason = "Non_attributable_In_Progress" si attributable = No, Critical_In_Progress sinon
 
 #### ACKNOWLEDGED|IN_PROGRESS → CANCELLED : annulation du ticket par l'OI
 Ce changement de status est effectué par l'OI.
@@ -275,7 +275,7 @@ Le champ statusChangeDetails doit être renseigné avec la raison de l'annulatio
 
 Ce changement de status ne peut être effectué que par l'OI. Le champ statusChangeReason doit être renseigné avec RESOLVED_OI.
 
-Le champs resolutionDate doit être renseigné ainsi que le champs recoveryVolumeDone.
+Le champs resolutionDate doit être renseigné ainsi que le champs recoveryQuantity.
 Une photo jointe illustrant la résolution de la malfaçon est obligatoire
 
 #### RESOLVED → CLOSED
@@ -311,11 +311,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
   OC->>OC: Résolution de la malfaçon
   OC->>OC: Ajout PJ obligatoire
@@ -340,11 +340,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
   OC->>OC: Résolution de la malfaçon
   OC->>OC: Ajout PJ obligatoire
@@ -370,8 +370,8 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire) + information nombre d'OC
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Unchargeable, chargeable=No, ResolutionOwner=OI)
-  OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason= Defect_Unchargeable)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Unattributable, attributable=No, ResolutionOwner=OI)
+  OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason= Defect_Unattributable)
   OI->>OI: Regroupement tickets liés pour intervention (bonne pratique)
   OI->>OI: Résolution de la malfaçon
   OI->>OI: Ajout PJ obligatoire
@@ -396,7 +396,7 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire) + information sévérité critique
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Critical, chargeable=No, severity=Critical, ResolutionOwner=OI)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Critical, attributable=No, severity=Critical, ResolutionOwner=OI)
   OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason= Defect_Critical)
   OI->>OI: Résolution de la malfaçon critique
   OI->>OI: Ajout PJ obligatoire
@@ -419,11 +419,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OI->>OI: Dépassement du compteur du délai de reprise OC
   OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason= Resolution_Date_Expired, ResolutionOwner=OI)
   OI->>OI: Résolution de la malfaçon
@@ -444,11 +444,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason= Resolution_Date_Expired, ResolutionOwner=OI)
   OI->>OI: Annuler ticket (status = CANCELLED, statusChangeReason = « Wrong Ticket »)
   OI->>OC: Notif (état = CANCELLED, statusChangeReason = « Wrong Ticket »)
@@ -466,11 +466,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
   OC->>OC: Résolution de la malfaçon
   OC->>OC: Ajout PJ obligatoire
@@ -504,11 +504,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OI: Notif (status = PENDING, statusChangeReason=Lack_Of_Information)
   OI->>OI: Gel du compteur du délai de reprise OC
   OI->>OI: Démarrage du compteur de réponse OI MaxPendingDate
@@ -540,11 +540,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
   OC->>OC: Résolution de la malfaçon
   OC->>OC: Ajout PJ obligatoire
@@ -579,11 +579,11 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= Chargeable_Accepted)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
   OC->>OI: Notif (status = PENDING, statusChangeReason=Contestation)
   OI->>OI: Gel du compteur du délai de reprise OC
   OI->>OI: Analyse de la contestation OC
@@ -602,7 +602,7 @@ sequenceDiagram
 
   OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
   OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_Chargeable, chargeable=Yes, ResolutionOwner=OC)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
   OI->>OI: Démarrage du compteur du délai de reprise OC
   OC->>OC: Contrôle de surface
   OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
@@ -626,7 +626,7 @@ L'OC a renseigné les champs :
 - type
 - localisationDetails
 - faultDetails
-- volumetry
+- quantity
 - les informations de localisation de la Malfaçon (ref PM et/ou ref PB et/ou ref PTO)
 
 Le champs statusChangeReason = Creating
