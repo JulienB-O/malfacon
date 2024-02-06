@@ -25,7 +25,7 @@ Cette API permet la déclaration et le traitement d’une malfaçon grâce à de
 
 Une malfaçon est une non-conformité par rapport aux STAS (Spécification Technique d’Accès aux Services) ou règles de l’art, issue de travaux menés dans le cadre d'une prestation de production ou de SAV sur un accès (PM/PBO/PTO). Les malfaçons que l’on constate le plus souvent sont : un non-respect du cheminement de la jarretière, une non-conformité de la jarretière (couleur, diamètre, longueur…) mais aussi des déchets laissés sur place (sachet plastique, chute de jarretière…) ou des dégradations (serrure cassée…). La Malfaçon se distingue de la notion de dysfonctionnement dont est ici rappelée la définition Interop’Fibre : un dysfonctionnement est une problématique qui rend impossible l’adduction du réseau d’un OC au PM mis à disposition par un OI.
 
-Structurant : Un signalisation est créée par typologie de malfaçon et par OC imputable, sans regroupement par élément d’infra.
+Structurant : Un signalisation est créée par typologie de malfaçon à l'OC imputable, sans regroupement par élément d’infra.
 
 Les signalisations peuvent être :
 1) De l'OI vers l'OC :
@@ -34,13 +34,13 @@ Cas 1 : Malfaçon imputable de l'OI vers l'OC : reprise attendue de la part de l
 
 Il s'agit alors de Malfaçon non critique imputable à un seul OC : c'est alors une notification appelant action corrective de la part de l’OC destinataire. Si l'OC ne corrige pas dans les délais attendus, alors l'OI effectue la correction lui-même et facturera l'OC pour cela.
 
-Cas 2 : Malfaçon "Critique" ou "non imputable" à un seul OC : la reprise est effectuée par l'OI
+Cas 2 : "Malfaçon Critique"  ou "Malfaçon non imputable" à un seul OC : la reprise est effectuée par l'OI
 
 Dans ces deux sous-cas ci-dessous, l'OI corrige la malfaçon lui-même et facturera l'OC (ou les OC suivant le sous cas):
 
-Sous-Cas 2.1 : Malfaçon critique : c'est alors une notification à l'OC n’appelant pas action de sa part car la reprise sera effectuée par l'OI compte-tenu de son aspect critique (c’est-à-dire pouvant présenter un danger grave et imminent pour les personnes et entrainer la responsabilité de l'OI à ce titre). L'aspect "Critique" de la malfaçon doit alors être conforme aux travaux Interop (cf onglet criticité du fichier excel listant les données de référence).
+Sous-Cas 2.1 : Malfaçon critique : il peut s'agir d'une signalisation imputable ou non imputable à un seul OC. C'est alors une notification à l'OC (ou aux OC) n’appelant pas action de sa/leur part car la reprise sera effectuée par l'OI compte-tenu de son aspect critique (c’est-à-dire pouvant présenter un danger grave et imminent pour les personnes et entrainer la responsabilité de l'OI à ce titre). L'aspect "Critique" de la malfaçon doit alors être conforme aux travaux Interop (cf onglet criticité du fichier excel listant les données de référence).
 
-Sous-Cas 2.2 : Malfaçon non imputable à un seul OC : c'est alors une notification à l'ensemble des OC concernés n’appelant pas d'action de leur part car la reprise sera effectuée par l'OI
+Sous-Cas 2.2 : Malfaçon non imputable à un seul OC et non critique : c'est alors une notification à l'ensemble des OC concernés n’appelant pas d'action de leur part car la reprise sera effectuée par l'OI
 
 2) De l'OC vers l'OI :
 
@@ -58,6 +58,9 @@ Les différents types de malfaçons sont :
 # Cycle de vie d'une Malfaçon Imputable OI vers OC non critique
 ![Workflow](./statusOiOcImput.drawio.svg)
 
+#### Gestion des pièces jointes
+!!! AJOUT DE ATTACHMENT POSSIBLE QUE SUR CREATING, IN PROGRESS, PENDING et RESOLVED!!!
+
 #### Initialisation : statut CREATING
 Une signalisation est créée par l’OI et porte l’information ResolutionOwner = ‘OC’.
 A ce stade la signalisation est en cours de création.
@@ -73,11 +76,15 @@ L'OI a renseigné les champs :
 - les informations de localisation de la Malfaçon (ref PM et/ou ref PB et/ou ref PTO)
 - ocNumber = 1
 
+Règle de geston : 
+- une signlisation portant sur la "présence de cordons à zéro non retirés" ne peut avoir une quantité < 5 que si il existe une autre signsalition sur le même élément d'infra déposé dans le "délai max de dépôt entre les tickets auprès d’un même OC sur un même élément d’infra" 
+- Sinon l'OC sera en droit de la contester
+
 Le champs statusChangeReason = Creating
 
 #### Complétude : statut ACKNOWLEDGED
 La signalisation est alors complète et contient l'ensemble des informations pour l'analyse OC:
-- une photo au format JPEG est présente oligatoirement illustrant la malfaçon
+- une photo au format JPEG est présente oligatoirement illustrant la malfaçon. Il est possible d'en joindre plusieurs mais dans tous les cas une, et une seule photo, doit porter une information spécifique indiquant que c'est la photo principale de détection de la signalisation
 - sauf dans les cas ci-dessous où l'OI devra fournir la route optique constatée (obligatoire) et la route optique théorique (facultatif) :
     PBO	/ ROUTE OPTIQUE /	Reprise sauvage Route Optique par casse soudure au PBO
     PBO	/ ROUTE OPTIQUE	/ Raccordement de site non déployé dans IPE
@@ -102,7 +109,7 @@ Ce changement est :
 - soit par l'OI lorsque le délai de résolution OC est atteinte (. Dans ce cas, le resolutionOwner est mis à OI et le champs statusChangeReason à OC_RESOLUTION_DELAY_EXPIRED.
 
 #### IN_PROGRESS → IN_PROGRESS: l'OI prend en charge la résolution du ticket suite dépassement délai OC
-Ce changement de status ne peut être effectué que par l'OI lorsque le délai de résolution par l'OC est dépassé.
+Ce changement de status ne peut être effectué que par l'OI et que si le délai de résolution par l'OC est dépassé.
 
 L'OI doit alors :
 - modifier le champs resolutionOwner qui doit être renseigné à "OI"
@@ -156,10 +163,10 @@ Sur un ticket dont le champs resolutionOwner='OI', ce changement de status ne pe
 
 Sur un ticket dont le champs resolutionOwner='OC', ce changement de status ne peut être effectué que par l'OC. Le champ statusChangeReason doit être renseigné avec RESOLVED_OC. Le compteur de délai de résolution OC se gèle et compteur de validation OI est alors calculé.
 
-Sur ces statusChangeReason = Resolved_OI ou Resolved_OI :
+En complément :
 - le champs resolutionDate doit être renseigné
 - ainsi que le champs recoveryQuantity
-- et une photo obligatoire au format JPEG illustrant la résolution de la malfaçon, sauf pour les 4 cas route optique (cf. status Acknowledged)
+- et une photo obligatoire au format JPEG illustrant la résolution de la malfaçon, sauf pour les 4 cas route optique (cf. status Acknowledged). Il est possible d'en joindre plusieurs mais dans tous les cas une, et une seule photo, doit porter une information spécifique indiquant que c'est la photo principale de résolution de la signalisation
 
 #### ACKNOWLEDGED → CANCELLED : annulation du ticket par l'OI
 Ce changement de status ne peut être effectué que par l'OI.
@@ -198,7 +205,6 @@ Cette signalisation ne peut pas être reprise par l'OI et donc le statusChangeRe
 
 ## Liste des différents compteurs utilisés dans le process malfaçons lors d'une signalisation OI vers OC
 Le protocole Interop n’harmonise pas les délais car ils relèvent du domaine contractuel propre à chaque opérateur. Néanmoins, les opérateurs doivent mettre en place des délais pour les cas décrits ci-dessous. Les valeurs sont propres à chaque OC/OI et seront formalisées dans les contrats.
-L'ensemble de ces délais sont exprimés en jours calendaires, et les différentes dates échangés dans le cadre de ce protocle devront être exprimées en UTC.
 
 ### Délai max de reprise OC :
 Compteur totalResolutionOcDuration qui démarre au passage du ticket à Acknowledged qui correspond à la transmission de la signalisation par l’OI.
@@ -207,6 +213,10 @@ Ce délai peut cependant s’allonger suite à l’application de « gels » :
 - Quand l’OC demande des compléments d’informations à l’OI pour traiter la malfaçon, le compteur de reprise OC est gelé le temps que l’OI réponde à la sollicitation.
 - Lorsque l’OC a effectué la reprise de la malfaçon (passage du ticket à Resolved), le compteur est gelé le temps que l’OI analyse la reprise OC. En cas de rejet de résolution, le compteur redémarrera là où il en était et l’OC pourra réitérer sa reprise dans les jours restants.
 
+### Délai max de reprise OI:
+Compteur totalResolutionOiDuration qui démarre au passage du ticket en résolution OI donc à in_Progress avec resolutionOwner=OI.
+Ce délai correspond au temps maximum alloué à l’OI pour résoudre la malfaçon.
+
 ### Délai max de validation OI :
 Est calculé lors de la réception par l’OI de la résolution envoyée par l’OC (passage du ticket à Resolved)
 Ce délai correspond au temps maximum alloué à l’OI pour valider ou non, la résolution par l’OC.
@@ -214,8 +224,12 @@ Ce délai de validation OI gèle le délai de reprise OC (totalResolutionOcDurat
 Une fois ce délai dépassé, la résolution est considérée comme automatiquement validée par l’OI et le ticket doit être clôturé. Une fois le ticket clôturé, l’OI ne pourra pas facturer l’OC s’il n’est pas satisfait de sa reprise. Il devra alors ouvrir un nouveau ticket, patienter le délai de reprise OC et, si de nouveau la reprise OC ne lui convient pas, exprimer le refus de validation dans le délai imparti pour ensuite reprendre la malfaçon et facturer l’OC.
 
 ### Délai max de réponse OI :
-Est calculé lors d'une question posée par l'OC à l'OI (passage du ticket à Pending)
-L'OI a alors un délai fixé (maxPendingDate) pour apporter la réponse à l'OC qui est en attente de celle-ci. Si cette date est dépassée, le ticket passe alors automatiquement en Resolved.
+Est calculé lors d'une question posée par l'OC à l'OI (passage du ticket à Pending lorsque le porteur de résolution=OC)
+L'OI a alors un délai fixé (maxPendingDate) pour apporter la réponse à l'OC qui est en attente de celle-ci. Si cette date est dépassée, le ticket passe alors automatiquement en Cancelled.
+
+### Délai max de réponse OC :
+Est calculé lors d'une question posée par l'OI à l'OC (passage du ticket à Pending lorsque le porteur de résolution=OI)
+L'OC a alors un délai fixé pour apporter la réponse à l'OI qui est en attente de celle-ci. Si cette date est dépassée, le ticket passe alors automatiquement à Closed avec application de pénalités.
 
 ### Délai max de dépôt entre les tickets auprès d’un même OC sur un même élément d’infra (Gestion des compléments de signalisations) :
 Il ne s'agit pas ici d'un compteur, mais plutôt d'une règle de gestion.
@@ -294,8 +308,8 @@ Les cas d'utilisation détaillés par la suite sont les suivants :
 #### Cas 4 : Malfaçon critique
 #### Cas 5 : Malfaçon imputable avec reprise par OI suite au dépassement du délai de reprise OC, résolue par l’OI
 #### Cas 6 : Malfaçon imputable avec reprise par OI suite au dépassement du délai de reprise OC MAIS non résolue par l’OI
-#### Cas 7 : Demande d’information complémentaire de l’OI à l’OC suite à la résolution OC
-#### Cas 8 : Demande d’information complémentaire de l’OC à l’OI suite à la réception du ticket
+#### Cas 7 : Demande d’information complémentaire de l’OC à l’OI suite à la réception du ticket
+#### Cas 8 : Demande d’information complémentaire de l’OI à l’OC suite à la résolution OC
 #### Cas 9 : Rejet de la résolution OC par l’OI - Cas reprise complémentaire réalisée par l'OC
 #### Cas 10 : Contestation de l’OC de sa responsabilité sur réception de la signalisation acceptée par l'OI
 #### Cas 11 : Annulation d'un ticket par l'OI
@@ -454,7 +468,43 @@ sequenceDiagram
   OI->>OC: Notif (état = CANCELLED, statusChangeReason = « Wrong Ticket »)
 ```
 
-## Cas 7 : Demande d’information complémentaire de l’OI à l’OC suite à la première résolution OC
+## Cas 7 : Demande d’information complémentaire de l’OC à l’OI suite à la réception du ticket
+Déclaration d'une malfaçon par l'OI à l’OC imputable. L’OC demande des informations complémentaires à l’OI pour pouvoir traiter la malfaçon. Une fois que l’OI a fourni ces informations, l’OC enchaîne sur le cas 1 (cas nominal).
+Suite à la réception du ticket, l’OC passe d’abord le ticket a « In Progress »’ puis demande ensuite des informations complémentaires à l’OI gelant par conséquent le délai max de reprise OC en attendant la réponse OI.
+
+```mermaid
+sequenceDiagram
+
+  participant OC
+  participant OI
+
+  OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
+  OI->>OI: Ajout d'une PJ (obligatoire)
+  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
+  OI->>OI: Démarrage du compteur du délai de reprise OC
+  OC->>OC: Contrôle de surface
+  OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
+  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
+  OC->>OI: Notif (status = PENDING, statusChangeReason=Lack_Of_Information)
+  OI->>OI: Gel du compteur du délai de reprise OC
+  OI->>OI: Démarrage du compteur de réponse OI MaxPendingDate
+  OI->>OI: Ajout d'une PJ et/ou Note
+  OI->>OC: Notif Note ET/OU Attachment
+  OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason=« Information_Given»)
+  OI->>OI: Dégel du compteur du délai de reprise OC
+  OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
+  OC->>OC: Résolution de la malfaçon
+  OC->>OC: Ajout PJ obligatoire
+  OC->>OI: Notif (status = RESOLVED, statusChangeReason = Resolved_OC)
+  OI->>OI: Gel du compteur du délai de reprise OC
+  OI->>OI: Démarrage du compteur de validation OI
+  OI->>OI: Contrôle de surface
+  OI->>OI: Contrôle métier (ex: consulter PJ, etc...)
+  OI->>OI: Cloture ticket (status = CLOSED, statusChangeReason = Resolution_Accepted)
+  OI->>OC: Notif (status = CLOSED, statusChangeReason = Resolved_OC)
+```
+
+## Cas 8 : Demande d’information complémentaire de l’OI à l’OC suite à la première résolution OC
 Déclaration d'une malfaçon par l'OI à l’OC imputable et reprise par l’OC dans le délai max. de reprise OC. Lorsqu’il a effectué la reprise, l'OC passe le ticket en résolu avec en PJ n photos. L’OI refuse la correction en demandant des informations complémentaires à l’OC. L'OC les fournit en repassant la signlisation à Resolved. L'OI valide la résolution de l’OC et clôt le ticket.
 
 
@@ -492,41 +542,6 @@ sequenceDiagram
   OI->>OC: Notif (status = CLOSED, statusChangeReason = Resolved_OC)
 ```
 
-## Cas 8 : Demande d’information complémentaire de l’OC à l’OI suite à la réception du ticket
-Déclaration d'une malfaçon par l'OI à l’OC imputable. L’OC demande des informations complémentaires à l’OI pour pouvoir traiter la malfaçon. Une fois que l’OI a fourni ces informations, l’OC enchaîne sur le cas 1 (cas nominal).
-Suite à la réception du ticket, l’OC passe d’abord le ticket a « In Progress »’ puis demande ensuite des informations complémentaires à l’OI gelant par conséquent le délai max de reprise OC en attendant la réponse OI.
-
-```mermaid
-sequenceDiagram
-
-  participant OC
-  participant OI
-
-  OI->>OI: Création malfaçon respectant le délai max de dépôt entre les tickets (CREATING)
-  OI->>OI: Ajout d'une PJ (obligatoire)
-  OI->>OC: Transmission signalisation (status = ACKNOWLEDGED, statusChangeReason = Defect_attributable, attributable=Yes, ResolutionOwner=OC)
-  OI->>OI: Démarrage du compteur du délai de reprise OC
-  OC->>OC: Contrôle de surface
-  OC->>OC: Contrôle métier (ex: consulter PJ, délai entre tickets etc...)
-  OC->>OI: Notif (status = « IN PROGRESS », statusChangeReason= attributable_Accepted)
-  OC->>OI: Notif (status = PENDING, statusChangeReason=Lack_Of_Information)
-  OI->>OI: Gel du compteur du délai de reprise OC
-  OI->>OI: Démarrage du compteur de réponse OI MaxPendingDate
-  OI->>OI: Ajout d'une PJ et/ou Note
-  OI->>OC: Notif Note ET/OU Attachment
-  OI->>OC: Notif (status = « IN PROGRESS », statusChangeReason=« Information_Given»)
-  OI->>OI: Dégel du compteur du délai de reprise OC
-  OC->>OC: Regroupement tickets liés pour intervention (bonne pratique)
-  OC->>OC: Résolution de la malfaçon
-  OC->>OC: Ajout PJ obligatoire
-  OC->>OI: Notif (status = RESOLVED, statusChangeReason = Resolved_OC)
-  OI->>OI: Gel du compteur du délai de reprise OC
-  OI->>OI: Démarrage du compteur de validation OI
-  OI->>OI: Contrôle de surface
-  OI->>OI: Contrôle métier (ex: consulter PJ, etc...)
-  OI->>OI: Cloture ticket (status = CLOSED, statusChangeReason = Resolution_Accepted)
-  OI->>OC: Notif (status = CLOSED, statusChangeReason = Resolved_OC)
-```
 
 ## Cas 9 : Rejet de la résolution OC par l’OI - Cas reprise complémentaire réalisée par l'OC
 Déclaration d'une malfaçon par l'OI à l’OC imputable. Lorsqu’il a effectué la reprise, l'OC passe le ticket en résolu avec en PJ n photos. L’OI rejette la reprise de la malfaçon faite par l’OC car la reprise est partielle (ex : 4 cordons à zéro ont été repris sur 6). Comme il n’a pas dépassé le délai max. de reprise OC, l’OC retourne sur le terrain pour compléter sa reprise initiale. L’OI devra donc valider le retour OC à plusieurs reprises, à priori 2 fois.
