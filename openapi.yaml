@@ -26,6 +26,13 @@ info:
 
     * La valeur par défaut d'une page est `limit=50` et `offset=0`.
     * La valeur maximale de `limit` est `100`.
+
+    ## Cohérence sur les opérations de mise à jour
+
+    Les ETags sont utilisés pour un contrôle de concurrence optimiste, afin d’empêcher les mises à jour simultanées d’une ressource.
+
+    * [ADR - Consistency on update operations](https://github.com/before-interop/common/tree/main/adr/consistency-on-update)
+
 servers:
   - url: "{protocol}://{host}:{port}{basePath}/malfacon"
     variables:
